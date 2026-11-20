@@ -14,6 +14,8 @@ GameManager::GameManager(int width, int height, const std::string& title)
       m_currentState(GameState::MENU),
       m_showControlsModal(false),
       m_debugMode(false),
+      m_isFullscreen(true),
+      m_renderTarget{},
       m_checkpointCoins(0),
       m_checkpointEliminations(0),
       m_currentLevelIndex(1) {
@@ -101,7 +103,7 @@ void GameManager::returnToMainMenu() {
 }
 
 bool GameManager::init() {
-    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT);
+    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT | FLAG_WINDOW_RESIZABLE);
     InitWindow(m_screenWidth, m_screenHeight, m_title.c_str());
     SetTargetFPS(60);
 
@@ -110,6 +112,14 @@ bool GameManager::init() {
         m_isRunning = false;
         return false;
     }
+
+    // Initialize in borderless fullscreen mode by default
+    ToggleBorderlessWindowed();
+    m_isFullscreen = IsWindowState(FLAG_BORDERLESS_WINDOWED_MODE);
+
+    // Initialize virtual resolution render target (1024x768)
+    m_renderTarget = LoadRenderTexture(m_screenWidth, m_screenHeight);
+    SetTextureFilter(m_renderTarget.texture, TEXTURE_FILTER_BILINEAR);
 
     m_uiManager = std::make_unique<UIManager>(m_screenWidth, m_screenHeight);
     CharacterRenderer::init();
@@ -120,8 +130,22 @@ bool GameManager::init() {
     m_currentState = GameState::MENU;
 
     m_isRunning = true;
-    std::cout << "[GameManager] Phase 6 UI and Visual Polish System initialized." << std::endl;
+    std::cout << "[GameManager] Initialized in Fullscreen Mode (Press F11 or Alt+Enter to toggle windowed)." << std::endl;
     return true;
+}
+
+void GameManager::toggleFullscreen() {
+    if (IsWindowReady()) {
+        ToggleBorderlessWindowed();
+        m_isFullscreen = IsWindowState(FLAG_BORDERLESS_WINDOWED_MODE);
+        if (m_uiManager) {
+            m_uiManager->addNotification(
+                m_isFullscreen ? "DISPLAY: FULLSCREEN" : "DISPLAY: WINDOWED",
+                Vector2{ m_screenWidth / 2.0f, 60.0f },
+                m_isFullscreen ? Color{ 0, 220, 255, 255 } : Color{ 200, 200, 200, 255 }
+            );
+        }
+    }
 }
 
 void GameManager::run() {
@@ -139,6 +163,14 @@ void GameManager::run() {
 }
 
 void GameManager::update(float deltaTime) {
+    // -------------------------------------------------------------
+    // Global Display Hotkey (F11 or Alt+Enter to Toggle Fullscreen)
+    // -------------------------------------------------------------
+    if (IsKeyPressed(KEY_F11) ||
+        ((IsKeyDown(KEY_LEFT_ALT) || IsKeyDown(KEY_RIGHT_ALT)) && IsKeyPressed(KEY_ENTER))) {
+        toggleFullscreen();
+    }
+
     // -------------------------------------------------------------
     // Global & State Keyboard Shortcuts
     // -------------------------------------------------------------
@@ -317,10 +349,27 @@ void GameManager::update(float deltaTime) {
 }
 
 void GameManager::draw() {
-    BeginDrawing();
+    float screenW = static_cast<float>(GetScreenWidth());
+    float screenH = static_cast<float>(GetScreenHeight());
+    float scale = std::min(screenW / static_cast<float>(m_screenWidth),
+                           screenH / static_cast<float>(m_screenHeight));
 
-    Vector2 mousePos = GetMousePosition();
+    Vector2 rawMouse = GetMousePosition();
+    Vector2 mousePos = {
+        (rawMouse.x - (screenW - (static_cast<float>(m_screenWidth) * scale)) * 0.5f) / scale,
+        (rawMouse.y - (screenH - (static_cast<float>(m_screenHeight) * scale)) * 0.5f) / scale
+    };
+    mousePos.x = std::clamp(mousePos.x, 0.0f, static_cast<float>(m_screenWidth));
+    mousePos.y = std::clamp(mousePos.y, 0.0f, static_cast<float>(m_screenHeight));
+
     bool mouseClicked = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+
+    if (m_renderTarget.id != 0) {
+        BeginTextureMode(m_renderTarget);
+        ClearBackground(BLACK);
+    } else {
+        BeginDrawing();
+    }
 
     switch (m_currentState) {
         case GameState::MENU: {
@@ -509,7 +558,30 @@ void GameManager::draw() {
         }
     }
 
-    EndDrawing();
+    if (m_renderTarget.id != 0) {
+        EndTextureMode();
+
+        BeginDrawing();
+        ClearBackground(BLACK);
+
+        Rectangle sourceRec = {
+            0.0f,
+            0.0f,
+            static_cast<float>(m_renderTarget.texture.width),
+            -static_cast<float>(m_renderTarget.texture.height)
+        };
+        Rectangle destRec = {
+            (screenW - (static_cast<float>(m_screenWidth) * scale)) * 0.5f,
+            (screenH - (static_cast<float>(m_screenHeight) * scale)) * 0.5f,
+            static_cast<float>(m_screenWidth) * scale,
+            static_cast<float>(m_screenHeight) * scale
+        };
+        DrawTexturePro(m_renderTarget.texture, sourceRec, destRec, Vector2{ 0.0f, 0.0f }, 0.0f, WHITE);
+
+        EndDrawing();
+    } else {
+        EndDrawing();
+    }
 }
 
 void GameManager::shutdown() {
@@ -519,6 +591,10 @@ void GameManager::shutdown() {
         m_uiManager.reset();
         m_currentLevel.reset();
         m_player.reset();
+        if (m_renderTarget.id != 0 && IsWindowReady()) {
+            UnloadRenderTexture(m_renderTarget);
+            m_renderTarget = {};
+        }
         m_isRunning = false;
         if (IsWindowReady()) {
             CloseWindow();

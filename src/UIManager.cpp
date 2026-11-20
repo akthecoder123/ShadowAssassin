@@ -130,8 +130,8 @@ void UIManager::drawHUD(
     DrawText(TextFormat("%d Kills", eliminations), 560, dockY + 28, 16, Color{ 255, 120, 120, 255 });
 
     // Section E: Concise Controls Hint
-    DrawText("CONTROLS: [WASD] Move  [SPACE] Assassinate  [P/ESC] Pause  [R] Reset",
-             700, dockY + 28, 11, Color{ 140, 155, 175, 255 });
+    DrawText("CONTROLS: [WASD] Move  [SPACE] Assassinate  [P/ESC] Pause  [R] Reset  [F11] Fullscreen",
+             640, dockY + 28, 11, Color{ 140, 155, 175, 255 });
 }
 
 bool UIManager::drawButton(
@@ -231,7 +231,7 @@ UIAction UIManager::drawMainMenu(Vector2 mousePos, bool mouseClicked, bool showC
 
 UIAction UIManager::drawControlsModal(Vector2 mousePos, bool mouseClicked) const {
     int cardW = 600;
-    int cardH = 460;
+    int cardH = 490;
     int cardX = (m_screenWidth - cardW) / 2;
     int cardY = (m_screenHeight - cardH) / 2;
 
@@ -264,8 +264,11 @@ UIAction UIManager::drawControlsModal(Vector2 mousePos, bool mouseClicked) const
         DrawText("[P] or [ESC] / [R]", cardX + 50, startY + lineSpacing * 5, 15, LIGHTGRAY);
         DrawText("Pause game session / Quick restart current sector", cardX + 245, startY + lineSpacing * 5, 14, RAYWHITE);
 
-        DrawText("PRIMARY OBJECTIVE:", cardX + 50, startY + lineSpacing * 6 + 10, 15, COLOR_ACCENT_GREEN);
-        DrawText("Eliminate all guards in each sector to progress to victory!", cardX + 50, startY + lineSpacing * 7 + 10, 14, RAYWHITE);
+        DrawText("[F11] or [ALT+ENTER]", cardX + 50, startY + lineSpacing * 6, 15, COLOR_ACCENT_CYAN);
+        DrawText("Toggle between Fullscreen and Windowed mode", cardX + 245, startY + lineSpacing * 6, 14, RAYWHITE);
+
+        DrawText("PRIMARY OBJECTIVE:", cardX + 50, startY + lineSpacing * 7 + 10, 15, COLOR_ACCENT_GREEN);
+        DrawText("Eliminate all guards in each sector to progress to victory!", cardX + 50, startY + lineSpacing * 8 + 10, 14, RAYWHITE);
     }
 
     int btnW = 200;

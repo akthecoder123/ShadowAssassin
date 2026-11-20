@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include "raylib.h"
 
 #include "Player.h"
 #include "Enemy.h"
@@ -82,6 +83,9 @@ public:
     bool isDebugMode() const { return m_debugMode; }
     void toggleDebugMode() { m_debugMode = !m_debugMode; }
 
+    bool isFullscreen() const { return m_isFullscreen; }
+    void toggleFullscreen();
+
 private:
     int m_screenWidth;
     int m_screenHeight;
@@ -90,6 +94,8 @@ private:
     GameState m_currentState;
     bool m_showControlsModal;
     bool m_debugMode;
+    bool m_isFullscreen;
+    RenderTexture2D m_renderTarget;
 
     // Checkpoint values for level restarts
     int m_checkpointCoins;

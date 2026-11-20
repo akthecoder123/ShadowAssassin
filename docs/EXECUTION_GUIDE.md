@@ -193,6 +193,7 @@ g++ -fsanitize=address,undefined -g -std=c++17 \
 - `M`: Return to Main Menu from Pause, Game Over, or Victory screens.
 - `R`: Restart active sector (restores guards and checkpoint metrics).
 - `Q`: Abort / Exit game.
+- `F11` / `ALT+ENTER`: Toggle between Fullscreen and Windowed mode.
 - `Mouse Left Click`: Select UI buttons on menus.
 
 ### Developer Debug Mode
